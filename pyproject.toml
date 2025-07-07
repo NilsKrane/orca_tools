@@ -1,0 +1,25 @@
+[build-system]
+requires = ["hatchling >= 1.26"]
+build-backend = "hatchling.build"
+
+[project]
+name = "orca_tools"
+version = "0.1.0"
+authors = [
+  { name="Nils Krane", email="nils.krane@empa.ch" },
+]
+description = "Python package for parsing and analyzing of ORCA DFT calculations."
+readme = "README.md"
+requires-python = ">=3.11"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "numpy",
+	"scipy",
+	"more_itertools",
+	"ujson",
+]
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE.txt"]

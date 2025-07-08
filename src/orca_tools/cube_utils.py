@@ -1,8 +1,15 @@
 import numpy as np
 import os
-from scipy.signal import convolve2d
+
+try: 
+    from scipy.signal import convolve2d
+except ModuleNotFoundError:
+    print('WARNING: Could not load module `scipy.signal`. It is only required for `method="Bardeen"` in `Cube.sim_STS()` and `Cube.extrapolate_wavefunction()`.')
+
 from .orca_utils import number_to_element, element_to_number, pad_lin_extrapolate, chunked
-from .orca_utils import default_masses, bohr2ang, hbar, m_e, q_e
+from .orca_utils import default_masses, bohr2ang, hbar, m_e, q_e # some physical constants
+
+# --------------------------------------------------------------------------------------------------------------
 
 class Cube:
     '''Class to load Gaussian formatted cubes and simulate constant height STS maps.'''

@@ -5,9 +5,9 @@ from .orca_utils import dict2json, gbw2json, json2gbw, gbw2cube, write_orcaplot_
 from .orca_utils import q_e, hbar, atomic_mass # some constants
 
 try:
-    import ujson as json
+    import ujson
 except ModuleNotFoundError:
-    import json
+    import json as ujson
 
 class Molecule:
     '''Class to parse and analyze DFT calculations from ORCA.'''
@@ -155,7 +155,7 @@ class Molecule:
         
         jsonfile = gbw2json(self.gbw)
         with open(jsonfile, 'r') as file:
-            self.json = json.load(file)
+            self.json = ujson.load(file)
 
         if cleanup:
             os.remove(jsonfile)
@@ -185,7 +185,7 @@ class Molecule:
             json_filename = self.basename + "_json2gbw.json"
         
         with open(json_filename, 'w') as f:
-            json.dump(json_dict, f, indent=4)
+            ujson.dump(json_dict, f, indent=4)
 
         gbwfile = json2gbw(json_filename,self.orca_path)
 
@@ -435,7 +435,7 @@ class Molecule:
         '''        
         assert self.json != None, "No JSON template available!"
         
-        coords_json = json.loads(json.dumps(self.json))
+        coords_json = ujson.loads(ujson.dumps(self.json))
 
         if type(coords) == type(None):
             return coords_json

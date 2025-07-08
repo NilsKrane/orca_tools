@@ -3,7 +3,7 @@ import os
 import numpy as np
 try:
     import ujson
-except ImportError:
+except ModuleNotFoundError:
     import json as ujson
 # -----------------------------------------
 # some useful constants

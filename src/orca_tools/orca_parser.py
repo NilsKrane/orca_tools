@@ -1,6 +1,9 @@
 import numpy as np
-import ujson
-
+try:
+    import ujson
+except ModuleNotFoundError:
+    import json as ujson
+    
 from .orca_utils import element_to_number
 from .orca_utils import default_masses, bohr2ang
 

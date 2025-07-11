@@ -1,0 +1,1 @@
+A small python script to quickly set up ORCA calculations and run vibrational analysis for IETS.

@@ -407,6 +407,8 @@ class Cube:
         elif method == "Bardeen":
             return self.convolve_WF(tip_height-plane, plane, workfunction, MO=MO, pad=pad, roi=roi)
 
+
+
     def extrapolate_WF(self, z: float=7., cut_off: float=1.5, workfunction: float=5.4, MO: int=None, pad: int=0) -> np.ndarray:
         '''Cut off wave function at height `cut_off` and extrapolate into vacuum to height `z`.
 
@@ -490,7 +492,11 @@ class Cube:
         dpsi = (psi[:,:,1]-psi[:,:,0])/np.linalg.norm(self.vec3)
         tip, dtip = self.tip_wavefuncs(tip_height,roi,workfunction)
         
-        return convolve2d(psi[:,:,0],dtip,mode='same') - convolve2d(dpsi,tip,mode='same')
+        try:
+            return convolve2d(psi[:,:,0],dtip,mode='same') - convolve2d(dpsi,tip,mode='same')
+        except NameError:
+            print('Bardeen method not available without scipy module, output consists of zeros.')
+            return np.zeros_like(psi[...,0])
     
 
     def tip_wavefuncs(self, tip_height: float=7., roi: float=None, workfunction: float=5.4) -> tuple[np.ndarray,np.ndarray]:

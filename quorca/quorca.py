@@ -7,13 +7,13 @@ import subprocess
 import orca_tools as ot
 
 # ==============================================================
-ORCA_PATH = '/home/krni/orca_6_0_1/'
+ORCA_PATH = '~/orca_6_0_1/'
 # Some default values
 PYTHON_CALL = 'python3'
 NPROCS = 5
 MAXCORE = 2000
 # SLURM
-SLURM_ENV = 'MINICONDA_PATH=/home/krni/miniconda3\nsource ${MINICONDA_PATH}/etc/profile.d/conda.sh\nconda activate env01\n'
+SLURM_ENV = 'source ~/miniconda3/etc/profile.d/conda.sh\nconda activate env01\n'
 # ==============================================================
 
 
@@ -274,7 +274,7 @@ def rebuilt_quorca_cmd(args: argparse.Namespace) -> str:
 
     This function recreates all flags required to run calculation via quorca using an existing input or output file.
     '''    
-    cmd_str = f'{PYTHON_CALL} {os.path.basename(__file__)}'
+    cmd_str = f'{PYTHON_CALL} {os.path.abspath(__file__)}'
     if args.input:
         cmd_str += f' -i {args.input}'
     if args.out:

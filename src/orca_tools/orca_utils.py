@@ -53,7 +53,7 @@ def json2gbw(json_file: str | os.PathLike, orca_path: str | os.PathLike="") -> s
     elif os.name == 'nt':
         ext = '.exe'
 
-    subprocess.run([orca_path+"orca_2json"+ext, json_file, "-gbw"],
+    subprocess.run([os.path.join(orca_path,"orca_2json"+ext), json_file, "-gbw"],
                     stdout=subprocess.DEVNULL)
 
     return os.path.splitext(json_file)[0]+"_copy.gbw"
@@ -71,7 +71,7 @@ def gbw2json(gbw_file: str | os.PathLike, orca_path: str | os.PathLike="", delet
     :return: Path to created JSON file.
     :rtype: str
     '''    
-    assert os.path.exists(gbw_file), "Error: *.gbw file not found!"
+    assert os.path.isfile(gbw_file), "Error: *.gbw file not found!"
     
     if os.name == 'posix':
         ext = ''
@@ -106,7 +106,7 @@ def gbw2cube(gbw_file: str | os.PathLike, orcaplotinput: str | os.PathLike, orca
         ext = ''
     elif os.name == 'nt':
         ext = '.exe'
-    subprocess.run([orca_path+"orca_plot"+ext, gbw_file, orcaplotinput],
+    subprocess.run([os.path.join(orca_path,"orca_plot"+ext), gbw_file, orcaplotinput],
                     stdout=subprocess.DEVNULL)
             
 def write_orcaplot_inputfile(cubedims: str, MO: int, spin: int=0,

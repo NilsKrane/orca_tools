@@ -72,7 +72,7 @@ class Molecule:
         self.ddipole = None
         '''Electric dipole derivative with respect to normal modes'''
         self.ir = None
-        '''Table of IR intensities.'''
+        '''Table of IR intensities of shape (#modes,7), with columns being: wavenumber, eps, Int, T**2, Tx, Ty, Tz.'''
         
         self.gbw = None
         '''Path to gbw/nto file.'''
@@ -447,7 +447,7 @@ class Molecule:
         
         return coords_json    
     
-    def make_cube(self, MO: int, spin=0, input: str | os.PathLike | dict = None,
+    def make_cube(self, MO: int, spin: int=0, input: str | os.PathLike | dict = None,
                   orcaplotinput: str | os.PathLike = None,
                     cubename: str=None, plottype=1, fileformat=7, orcaplotinput_filename='./orcaplotinput',
                     cubedims: str=None,

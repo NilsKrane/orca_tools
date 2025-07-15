@@ -7,9 +7,10 @@ import subprocess
 import orca_tools as ot
 
 # ==============================================================
-ORCA_PATH = '~/orca_6_0_1/'
+# System specific parameter
+ORCA_PATH = '' # Path to orca dictionary if not added to PATH variable. Use empty string '' otherwise
+PYTHON_CALL = 'python3' # How to run this file
 # Some default values
-PYTHON_CALL = 'python3'
 NPROCS = 5
 MAXCORE = 2000
 # SLURM

@@ -587,7 +587,12 @@ class OutMolecule:
         '''                
 
         if not content: return None
-            
+
+        try:            
+            nroots = int(content.split('Number of roots to be determined               ...')[-1].split()[0])
+        except IndexError:
+            return None
+        
         content = content.split("TD-DFT/TDA EXCITED STATES")
         if len(content) == 1:
             TDA = False
@@ -596,8 +601,8 @@ class OutMolecule:
                 return None
         else:
             TDA = True
-        content = content[-1].split("\n\n\n")[0]
-        content = content.split("STATE")[1:]
+        
+        content = [c.split('\n\n')[0] for c in content[-1].split("STATE")[1:nroots+1]]
 
         TDstate_list = [None]*len(content)
         for i, block in enumerate(content):

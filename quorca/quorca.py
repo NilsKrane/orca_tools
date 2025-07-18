@@ -514,7 +514,7 @@ def run_orca(inputfile: str | os.PathLike, outputfile: str | os.PathLike='', cwd
         cwd = './'
     
     if not quiet:
-        print('Start DFT calculation...', flush=True)
+        print('\nStart DFT calculation...', flush=True)
     with open(outputfile,'w') as outfile:
             subprocess.run([os.path.join(ORCA_PATH,'orca'+ext()), inputfile], cwd=cwd, stdout=outfile)
     
@@ -522,7 +522,7 @@ def run_orca(inputfile: str | os.PathLike, outputfile: str | os.PathLike='', cwd
             
     if mol.success:
         if not quiet:
-            print('... finished successfully.', flush=True)
+            print('... terminated normally.', flush=True)
         return outputfile
     else:
         if not quiet:
@@ -596,7 +596,7 @@ def run_vibrational_analysis(args: argparse.Namespace, gbw_file: str | os.PathLi
 
     # ------------ Start Calculations ------------
 
-    print(f'Starting vibrational caclulations with {len(modes)} modes...', flush=True)
+    print(f'\nStarting vibrational caclulations with {len(modes)} modes...', flush=True)
 
     if not os.path.exists(VPATH): 
             os.makedirs(VPATH)
@@ -720,9 +720,6 @@ if __name__ == '__main__':
             slurm_args_from_input_dict(args,vib_dict)
             write_slurm_file(args,filename='vibs.sh')
             quit()
-
-        if args.input: # this is second step, add delimiter to stdout
-            print('\n----------------------------------------\n', flush=True)
 
         # find gbw file and run vibrational analysis.
         gbw = basename_from_output(args.out)+'.gbw'

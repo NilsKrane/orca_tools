@@ -1,5 +1,6 @@
 import numpy as np
 import os
+import copy
 
 try: 
     from scipy.signal import convolve2d
@@ -613,3 +614,21 @@ class Cube:
             f.write(bytes(data_string(self.data),'utf-8'))
 
         return filepath
+    
+    # -----------------------------------------------------------------------------------------------------
+
+    def copy(self) -> 'Cube':
+        '''Create copy of this instance. See also `self.deepcopy()`.
+
+        :return: Copy of instance
+        :rtype: Cube
+        '''        
+        return copy.copy(self)
+    
+    def deepcopy(self) -> 'Cube':
+        '''Create deepcopy of this instance. See also `self.copy()`.
+
+        :return: Copy of instance
+        :rtype: Cube
+        '''        
+        return copy.deepcopy(self)

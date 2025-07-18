@@ -590,7 +590,7 @@ class OutMolecule:
 
         try:            
             nroots = int(content.split('Number of roots to be determined               ...')[-1].split()[0])
-        except IndexError:
+        except ValueError:
             return None
         
         content = content.split("TD-DFT/TDA EXCITED STATES")

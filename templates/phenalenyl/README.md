@@ -1,0 +1,1 @@
+Template to simulate the IETS maps for phenalenyl radical

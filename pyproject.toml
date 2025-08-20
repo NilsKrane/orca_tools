@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "orca_tools"
-version = "0.1.3"
+version = "0.1.4"
 authors = [
   { name="Nils Krane", email="nils.krane@empa.ch" },
 ]

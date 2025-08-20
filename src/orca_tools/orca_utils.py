@@ -78,7 +78,7 @@ def gbw2json(gbw_file: str | os.PathLike, orca_path: str | os.PathLike="", delet
     elif os.name == 'nt':
         ext = '.exe'
 
-    subprocess.run([orca_path+"orca_2json"+ext, gbw_file], stdout=subprocess.DEVNULL)
+    subprocess.run([os.path.join(orca_path,"orca_2json"+ext), gbw_file], stdout=subprocess.DEVNULL)
     suffix = gbw_file.split(".")[-1]
 
     if delete_bibtex:
@@ -279,6 +279,8 @@ def element_to_number(symbol: str | list[str]) -> int | np.ndarray:
             return np.array([_element_symbols.index(s) for s in symbol], dtype=np.dtype(int))
         except ValueError:
             return None
+        except TypeError:
+            return None
 
 def number_to_element(num: int | list[int]) -> str | list[str]:
     '''Return element name (abbreviated) for given element number or list of numbers.
@@ -328,3 +330,65 @@ def chunked(a: list | np.ndarray, n: int) -> list:
         chunks[-1] = a[n*(len(a) // n):]
     return chunks
 
+# -----------------------------------------------------------------------------------------
+
+def is_orca_output(filename: str | os.PathLike) -> bool:
+    '''Check if given file is created by ORCA calculation.
+
+    :param filename: Path to file
+    :type filename: str | os.PathLike
+    :return: True if created by ORCA.
+    :rtype: bool
+    '''    
+    header = '''
+                                 *****************
+                                 * O   R   C   A *
+                                 *****************\n'''
+    try:
+        with open(filename,'r') as f:
+            content = f.read(len(header))
+    except:
+        return False
+    else:
+        return content == header
+
+# -----------------------------------------------------------------------------------------
+
+def file_list_from_directory(path: str | os.PathLike) -> list[os.PathLike]:
+    '''Search for ORCA output, *.gbw and *.hess files in given directory.
+
+    :param path: Path to directory to search.
+    :type path: str | os.PathLike
+    :return: List of files, if unique in directory.
+    :rtype: list[os.PathLike]
+    '''    
+
+    file_list = []
+
+    if not os.path.isdir(path):
+        return file_list
+
+    files = [f.path for f in os.scandir(path) if f.is_file()]
+
+    out_files = [f for f in files if os.path.splitext(f)[1] == '.out']
+    out_files = [f for f in out_files if is_orca_output(f)]
+    if len(out_files) == 0:
+        out_files = [f for f in files if is_orca_output(f)]
+    if len(out_files) == 1:
+        file_list.append(out_files[0])
+    elif len(out_files) > 1:
+        print('More than one output file detected.')
+
+    gbw_files = [f for f in files if os.path.splitext(f)[1] == '.gbw']
+    if len(gbw_files) == 1:
+        file_list.append(gbw_files[0])
+    elif len(gbw_files) > 1:
+        print('More than one *.gbw file detected.')
+    
+    hess_files = [f for f in files if os.path.splitext(f)[1] == '.hess']
+    if len(hess_files) == 1:
+        file_list.append(hess_files[0])
+    elif len(hess_files) > 1:
+        print('More than one *.hess file detected.')
+
+    return file_list

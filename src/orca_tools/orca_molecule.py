@@ -1,7 +1,7 @@
 import numpy as np
 import os
 from .orca_parser import HessMolecule, OutMolecule, JSONMolecule
-from .orca_utils import dict2json, gbw2json, json2gbw, gbw2cube, write_orcaplot_inputfile, cube_dims, element_to_number
+from .orca_utils import dict2json, gbw2json, json2gbw, gbw2cube, write_orcaplot_inputfile, cube_dims, element_to_number, is_orca_output, file_list_from_directory
 from .orca_utils import q_e, hbar, atomic_mass # some constants
 
 try:
@@ -15,19 +15,38 @@ class Molecule:
     def __init__(self, filenames: str | os.PathLike | list[str], orca_path="", parse_gbw=False):
         '''Initialize instance of `Molecule` class.
 
-        :param filenames: Path or list of paths to files to be loaded.
+        :param filenames: Path or list of paths to files to be loaded. If path points to directory, files will be detected automatically.
         :type filenames: str | os.PathLike | list[str]
         :param orca_path: Path to directory containing ORCA binaries, defaults to "". Only required if ORCA is not added to PATH
         :type orca_path: str, optional
         :param parse_gbw: Unpack gbw/nto binary and load parse input. Requires installation of ORCA, defaults to False
         :type parse_gbw: bool, optional
-        '''        
-        try:
+        '''
+
+        try: # assume list of files is given
             filename = filenames.pop(0)
-        except AttributeError:
-            filename = filenames
-            filenames = []
         
+        except IndexError: # empty list given
+            filename = None
+
+        except AttributeError:
+            
+            if os.path.isfile(filenames): # single file was given
+                filename = filenames
+                filenames = []
+
+            elif os.path.isdir(filenames): # path was given, search for files
+                filenames = file_list_from_directory(filenames)
+                if len(filenames):
+                    filename = filenames.pop(0)
+                else:
+                    filename = None
+            
+            else: # input is not useful
+                filename = None
+                filenames = []
+
+
         self.filename = filename
         '''First filename with which Molecule instance was initiated.'''
         self.basename = self._get_basename(filename)
@@ -89,7 +108,10 @@ class Molecule:
 
     @staticmethod
     def _get_basename(filename: str) -> str:
-        return os.path.splitext(os.path.basename(filename))[0]
+        if isinstance(filename,str):
+            return os.path.splitext(os.path.basename(filename))[0]
+        else:
+            return None
 
     def add_source(self,filenames: str | os.PathLike | list[str], parse_gbw=False):
         '''Add additional source to existing instance of `Molecule` class.
@@ -98,8 +120,11 @@ class Molecule:
         :type filenames: str | os.PathLike | list[str]
         :param parse_gbw: Unpack gbw/nto binary and load parse input. Requires installation of ORCA, defaults to False.
         :type parse_gbw: bool, optional
-        '''        
-        if isinstance(filenames,str):
+        '''
+
+        if not len(filenames):
+            return None
+        elif isinstance(filenames,str):
             self.__read_file(filenames, parse_gbw=parse_gbw)
         else:
             for filename in filenames:
@@ -114,7 +139,12 @@ class Molecule:
         :type parse_gbw: bool, optional
         '''        
 
-        assert os.path.exists(filename), "File not found!"
+        if type(filename) == type(None):
+            print("File not found!")
+            return None
+        elif not os.path.exists(filename):
+            print(f"File not found: {filename}")
+            return None
 
         if filename.endswith('hess'):
             self.__add_attributes(HessMolecule(filename))
@@ -124,7 +154,7 @@ class Molecule:
             if parse_gbw:
                 self.load_gbw()
                 
-        else:
+        elif is_orca_output(filename):
             self.__add_attributes(OutMolecule(filename))
         
 
@@ -153,7 +183,7 @@ class Molecule:
         '''        
         assert type(self.gbw) is not type(None), "Now gbw file defined"
         
-        jsonfile = gbw2json(self.gbw)
+        jsonfile = gbw2json(self.gbw,orca_path=self.orca_path)
         with open(jsonfile, 'r') as file:
             self.json = ujson.load(file)
 
@@ -198,19 +228,29 @@ class Molecule:
             
     @property
     def mass(self) -> np.ndarray:
-        '''Mass of atoms in atomic units.'''        
-        return np.array([atom["mass"] for atom in self.atoms])
+        '''Mass of atoms in atomic units.'''
+        try:        
+            return np.array([atom["mass"] for atom in self.atoms])
+        except TypeError:
+            return None
 
     @property
     def nuclearcharge(self) -> np.ndarray:
         '''Nuclear charge of atoms.'''
-        return np.array([atom["nuclearcharge"] for atom in self.atoms])
+        try:
+            return np.array([atom["nuclearcharge"] for atom in self.atoms])
+        except TypeError:
+            return None
         
     @property
     def element(self) -> list:
         '''Element names of atoms. For element number, use property `element_num`.
         '''
-        return [atom["element"] for atom in self.atoms]
+        try:
+            return [atom["element"] for atom in self.atoms]
+        except TypeError:
+            return None
+
 
     @property
     def element_num(self) -> np.ndarray:
@@ -221,7 +261,11 @@ class Molecule:
     @property
     def coords(self) -> np.ndarray:
         '''Coordinates of atoms'''
-        return np.array([atom["coords"] for atom in self.atoms])#.transpose()
+        try:
+            return np.array([atom["coords"] for atom in self.atoms])
+        except TypeError:
+            return None
+
     
     @coords.setter
     def coords(self, new_coords: np.ndarray):
@@ -229,19 +273,29 @@ class Molecule:
 
         :param new_coords: 2d array of dimension (number_of_atoms,3).
         :type new_coords: np.ndarray
-        '''        
-        for i, atom in enumerate(self.atoms):
-            atom["coords"] = new_coords[i,:]
+        '''
+        try:       
+            for i, atom in enumerate(self.atoms):
+                atom["coords"] = new_coords[i,:]
+        except TypeError:
+            pass
 
     @property
     def center_of_mass(self) -> np.ndarray:
         '''Center of mass of molecule.'''
-        return np.sum(self.coords*self.mass[:,None], axis=0)/np.sum(self.mass)
+        try:
+            return np.sum(self.coords*self.mass[:,None], axis=0)/np.sum(self.mass)
+        except TypeError:
+            return None
+
 
     @property
     def coords_masscentered(self) -> np.ndarray:
         '''Coordinates of atoms, relative to the center of mass.'''
-        return self.coords - self.center_of_mass[None,:]
+        try:
+            return self.coords - self.center_of_mass[None,:]
+        except TypeError:
+            return None
     
     @property
     def mwnm(self) -> np.ndarray:
@@ -286,58 +340,53 @@ class Molecule:
             return int(np.sum(self.occupation[:])/2)
     
     @property
+    def homo_spin(self) -> tuple[int,int]:
+        '''Return number of highest occupied orbital and corresponding spin.'''
+        if self.UKS:
+            spin = np.array([self.MO_energies[0,self.homo_a],self.MO_energies[1,self.homo_b]]).argmax()
+            return [self.homo_a,self.homo_b][spin], spin
+        else:
+            return self.homo_a, 0
+
+    @property
+    def lumo_spin(self) -> tuple[int,int]:
+        '''Return number of lowest unoccupied orbital and corresponding spin.'''
+        if self.UKS:
+            spin = np.array([self.MO_energies[0,self.lumo_a],self.MO_energies[1,self.lumo_b]]).argmin()
+            return [self.lumo_a,self.lumo_b][spin], spin
+        else:
+            return self.lumo_a, 0
+
+    @property
     def homo(self) -> int:
-        '''Number of highest occupied molecular orbital (RKS only).'''
-        assert np.ndim(self.occupation) == 1, "Molecule is not restricted!"
-        return int(np.sum(self.occupation == 2.0)-1)
+        '''Return number of highest occupied orbital.'''
+        return self.homo_spin[0]
 
     @property
     def lumo(self) -> int:
-        '''Number of highest unoccupied molecular orbital (RKS only).'''
-        return self.homo+1
-    
-    def __sxmo(self,x: int, s: int) -> int:
-        '''Number of highest or lowest molecular orbital for spin `s`.
-
-        :param x: Return highest occupied (x==1) or lowest unoccupied (x==0) orbital
-        :type x: int
-        :param s: Spin up (s==0) or down (s==1)
-        :type s: int
-        :return: Number of molecular orbital
-        :rtype: int
-        '''        
-        assert np.ndim(self.occupation) == 2, "Molecule is not unrestricted!"
-        return int(np.sum(self.occupation[s,:] == 1.0)-x)
+        '''Return number of lowest unoccupied orbital.'''
+        return self.lumo_spin[0]
     
     @property
-    def somo(self) -> int:
-        '''Return highest singly occupied orbital (UKS only).'''
-        return self.somo_a
+    def homo_a(self) -> int:
+        '''Return number of highest occupied alpha orbital.'''
+        return self.num_alpha-1
         
     @property
-    def sumo(self) -> int:
-        '''Return lowest singly unoccupied orbital (UKS only).'''
-        return self.sumo_b
-
-    @property
-    def somo_a(self) -> int:
-        '''Return highest singly occupied alpha orbital (UKS only).'''        
-        return self.__sxmo(1,0)
+    def homo_b(self) -> int:
+        '''Return number of highest occupied beta orbital.'''
+        return self.num_beta-1
         
     @property
-    def sumo_a(self) -> int:
-        '''Return lowest singly unoccupied alpha orbital (UKS only).'''
-        return self.__sxmo(0,0)
-
-    @property
-    def somo_b(self) -> int:
-        '''Return highest singly occupied beta orbital (UKS only).'''        
-        return self.__sxmo(1,1)
+    def lumo_a(self) -> int:
+        '''Return number of lowest unoccupied alpha orbital.'''
+        return self.num_alpha
         
     @property
-    def sumo_b(self) -> int:
-        '''Return lowest singly unoccupied beta orbital (UKS only).'''
-        return self.__sxmo(0,1)
+    def lumo_b(self) -> int:
+        '''Return number of lowest unoccupied beta orbital.'''
+        return self.num_beta
+        
 
     def get_ntos(self, state: int , threshold: float = 0) -> list[tuple[int, int, float]]:
         '''List of NTOs for `state` with occupation larger than `threshold`
@@ -374,19 +423,44 @@ class Molecule:
             return self.coords_masscentered + amplitude*factor[:,None]*self.mwnm[mode,:,:]
         else:
             return self.coords + amplitude*factor[:,None]*self.mwnm[mode,:,:]
-    
-    def write_to_xyz(self, filename: str='', coords: np.ndarray=None, infostr=""):
-        '''Write coordinates into *.xyz file.
 
-        :param filename: Name of xyz file to be created.  If not specified a filename will be created automatically.
-        :type filename: str, optional
+
+    def xyz_vibration_string(self, mode: int, amplitude: int=1) -> str:
+        '''Return content for xyz file for animating vibrational modes.
+
+        The molecular structure is dislocated by `amplitude` and the vibrational vectors scaled by `2*amplitudes`.
+
+        :param mode: Vibrational normal mode
+        :type mode: int
+        :param amplitude: Amplitude of dislocation, defaults to 1
+        :type amplitude: int, optional
+        :return: String containing content of xyz file
+        :rtype: str
+        '''        
+
+        coords = np.column_stack((self.coords-self.normal_modes[mode]*amplitude,self.normal_modes[mode]*amplitude*2))
+        content = f"{len(self.atoms)}\n"
+        content += f'Vibrational mode: {mode}; Energy (eV): {self.freqs[mode]}; Amplitude: {amplitude}\n'
+        for atom, atom_coords in enumerate(coords):
+            content += f'{self.element[atom]:<2}'
+            for xyz in atom_coords:
+                content += '{:>23}'.format(f'{xyz:.12e}')
+            content += f'\n'
+        content += '\n'
+
+        return content        
+
+
+    def xyz_string(self, coords: np.ndarray=None, infostr: str="") -> str:
+        '''Create string for xyz file.
+
         :param coords: Coordinates do be used. If not defined `self.coords` will be used.
         :type coords: np.ndarray, optional
         :param infostr: Info string to be printed in the file (will be reduced to single line)
         :type infostr: str, optional
-        :return: Name of file.
+        :return: Content for xyz file.
         :rtype: str
-        '''
+        '''        
         if type(coords) == type(None):
             coords = self.coords
         
@@ -399,12 +473,33 @@ class Molecule:
             content += f'\n'
         content += '\n'
 
+        return content        
+
+
+    def write_to_xyz(self, filename: str='', coords: np.ndarray=None, infostr="") -> str:
+        '''Write coordinates into *.xyz file.
+
+        :param filename: Name of xyz file to be created.  If not specified a filename will be created automatically.
+        :type filename: str, optional
+        :param coords: Coordinates do be used. If not defined `self.coords` will be used.
+        :type coords: np.ndarray, optional
+        :param infostr: Info string to be printed in the file (will be reduced to single line)
+        :type infostr: str, optional
+        :return: Name of file.
+        :rtype: str
+        '''
+
+        content = self.xyz_string(coords=coords, infostr=infostr)
+
         if filename == "":
             filename = self.basename + '.xyz'
 
         with open(filename, "wb") as file:
-            file.write(bytes(content,"utf-8"))
+            file.write(bytes(content,"utf-8"))   
+
+        return filename     
             
+
     def dislocate_to_xyz(self, mode: int, amplitude=1.0, filename="", mass_centered = False) -> str:
         '''Write coordinates dislocated by vibrational normal mode to *.xyz file.
 
@@ -424,6 +519,7 @@ class Molecule:
         if filename == "":
             filename = self.basename + f"_m{mode}_a{amplitude}.xyz"
         self.write_to_xyz(filename, coords, infostr)
+
 
     def coords_to_json(self, coords: np.ndarray=None) -> dict:
         '''Update atom coordinates in `self.json` and return copy of JSON dictionary.
@@ -446,6 +542,7 @@ class Molecule:
             coords_json["Molecule"]["Atoms"][i]["Coords"][2]=atom_coords[2]
         
         return coords_json    
+    
     
     def make_cube(self, MO: int, spin: int=0, input: str | os.PathLike | dict = None,
                   orcaplotinput: str | os.PathLike = None,

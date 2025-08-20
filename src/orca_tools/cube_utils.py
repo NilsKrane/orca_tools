@@ -29,6 +29,8 @@ class Cube:
 
         self.filename = None
         '''Filename of cube.'''
+        self.basename = None
+        '''Basename of `self.filename`'''
         self.data = None
         '''Array containing data of cube'''
         self.natoms = None
@@ -64,6 +66,7 @@ class Cube:
 
         try: # assume input is path to cube file
             self.filename = input
+            self.basename = self._get_basename(self.filename)
             header, pointer_position = self.load_cube_header(input)
             self.parse_cube_header(header)
             if readData:
@@ -78,6 +81,21 @@ class Cube:
                 raise ValueError('Inputstr is neither valid file nor valid header.')
 
     # -----------------------------------------------------------------------------------------------------
+
+    @property
+    def content(self) -> str:
+        '''Load full content of *.cub file with which instance was initialized.
+
+        :return: Content of cubefile.
+        :rtype: str
+        '''        
+        with open(self.filename,'r') as cubefile:
+            content = cubefile.read()
+        return content
+
+    @staticmethod
+    def _get_basename(filename: str) -> str:
+        return os.path.splitext(os.path.basename(filename))[0]
 
     @staticmethod
     def load_cube_header(filename: str | os.PathLike) -> tuple[str, int]:
@@ -545,17 +563,13 @@ class Cube:
             
     # -----------------------------------------------------------------------------------------------------
 
-    def write_cube(self, filename: str, path: str | os.PathLike="./", header: str=None) -> os.PathLike:
-        '''Write cube to file.
+    def cube_string(self, header: str=None) -> str:
+        '''Write cube to string for *.cub file.
 
-        :param filename: Name of cube file to be created. 
-        :type filename: str
-        :param path: Path to directory where cube file is to be stored, defaults to "./"
-        :type path: str | os.PathLike, optional
         :param header: Up to two header lines (seperated by r'\n') to be added to cube file. If not defined `self.header` will be used.
         :type header: str, optional
-        :return: Path to file created.
-        :rtype: os.PathLike
+        :return: String containing content as in a *.cub file.
+        :rtype: str
         '''
 
         def two_line_header(header):
@@ -585,7 +599,42 @@ class Cube:
                                                                for row in list(chunked(data[ix,iy,:],6))])
             return '\n'.join(out)+'\n'
         
+        cube_str = ''
+        
+        # two header lines
+        if type(header) is type(None):
+            cube_str += '\n'.join(self.header)+'\n'
+        else:
+            cube_str += two_line_header(header)
 
+        # cube dimensions
+        cube_str += self.parameters
+
+        # list all atoms
+        cube_str += atoms_string(self.atoms)
+
+        # special line for molecular orbitals
+        if self.isMO:
+            cube_str += ''.join(['{:>5}'.format(int(a)) for a in [self.nMO]+list(self.vecMO)])+'\n'
+
+        # actual data
+        cube_str += data_string(self.data)
+
+        return cube_str
+
+
+    def write_cube(self, filename: str, path: str | os.PathLike="./", header: str=None) -> os.PathLike:
+        '''Write cube to file.
+
+        :param filename: Name of cube file to be created. 
+        :type filename: str
+        :param path: Path to directory where cube file is to be stored, defaults to "./"
+        :type path: str | os.PathLike, optional
+        :param header: Up to two header lines (seperated by r'\n') to be added to cube file. If not defined `self.header` will be used.
+        :type header: str, optional
+        :return: Path to file created.
+        :rtype: os.PathLike
+        '''
         # Make sure filename ends with .cub or .cube
         if not filename.endswith('.cub') and not filename.endswith('.cube'):
             filename+='.cub'
@@ -593,27 +642,53 @@ class Cube:
         # create file and write...
         filepath = os.path.join(path,filename)
         with open(filepath,"wb") as f:    
-            
-            # two header lines
-            if type(header) is type(None):
-                f.write(bytes('\n'.join(self.header)+'\n','utf-8'))
-            else:
-                f.write(bytes(two_line_header(header),'utf-8'))
-
-            # cube dimensions
-            f.write(bytes(self.parameters,'utf-8'))
-
-            # list all atoms
-            f.write(bytes(atoms_string(self.atoms),'utf-8'))
-
-            # special line for molecular orbitals
-            if self.isMO:
-                f.write(bytes(''.join(['{:>5}'.format(int(a)) for a in [self.nMO]+list(self.vecMO)])+'\n','utf-8'))
-
-            # actual data
-            f.write(bytes(data_string(self.data),'utf-8'))
+            f.write(bytes(self.cube_string(header),'utf-8'))
 
         return filepath
+    
+    # -----------------------------------------------------------------------------------------------------
+
+    def xyz_string(self, infostr: str="") -> str:
+        '''Create string for xyz file.
+
+        :param infostr: Info string to be printed in the file (will be reduced to single line)
+        :type infostr: str, optional
+        :return: Content for xyz file.
+        :rtype: str
+        '''              
+        content = f"{len(self.atoms)}\n"
+        content += infostr.replace("\n", "; ").replace("\r", "")+'\n'
+        for atom, atom_coords in enumerate(self.coords):
+            content += f'{self.element[atom]:<2}'
+            for xyz in atom_coords:
+                content += '{:>23}'.format(f'{xyz:.12e}')
+            content += f'\n'
+        content += '\n'
+
+        return content    
+    
+    def write_to_xyz(self, filename: str='', infostr="") -> str:
+        '''Write coordinates into *.xyz file.
+
+        :param filename: Name of xyz file to be created.  If not specified a filename will be created automatically.
+        :type filename: str, optional
+        :param coords: Coordinates do be used. If not defined `self.coords` will be used.
+        :type coords: np.ndarray, optional
+        :param infostr: Info string to be printed in the file (will be reduced to single line)
+        :type infostr: str, optional
+        :return: Name of file.
+        :rtype: str
+        '''
+
+        content = self.xyz_string(infostr=infostr)
+
+        if filename == "":
+            filename = self.basename + '.xyz'
+
+        with open(filename, "wb") as file:
+            file.write(bytes(content,"utf-8"))   
+
+        return filename     
     
     # -----------------------------------------------------------------------------------------------------
 
@@ -628,7 +703,7 @@ class Cube:
     def deepcopy(self) -> 'Cube':
         '''Create deepcopy of this instance. See also `self.copy()`.
 
-        :return: Copy of instance
+        :return: Deepcopy of instance
         :rtype: Cube
         '''        
         return copy.deepcopy(self)

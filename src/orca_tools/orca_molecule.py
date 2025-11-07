@@ -140,7 +140,6 @@ class Molecule:
         '''        
 
         if type(filename) == type(None):
-            print("File not found!")
             return None
         elif not os.path.exists(filename):
             print(f"File not found: {filename}")

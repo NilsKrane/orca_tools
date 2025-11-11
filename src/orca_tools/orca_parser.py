@@ -253,6 +253,7 @@ class OutMolecule:
         '''List of NTO states.'''
         self.tdip, self.dtdip = self.parse_dtdip(content)
 
+        self.spinCIs = self.parse_spinCIs(content)
 
         self.freqs = None
         '''Energies of vibrational normal modes (eV)'''
@@ -741,6 +742,46 @@ class OutMolecule:
                     scale[mode-1] = 2.
             return ref_tdip, (tdip - tdip_r)/scale[:,None]
    
+
+    @staticmethod
+    def parse_spinCIs(content: str) -> list[dict]:
+        """Parse spin CI.
+
+        :param content: Content of output file.
+        :type content: str
+        :return: List of dictionaries for the spin CIs.
+        :rtype: list[dict]
+        """        
+
+        ci_block_start = '''----------------------------------------\n  Spin-Determinant CI Printing   \n----------------------------------------  \nROOT'''
+        ci_block_end = f'\n\n\n'
+
+        # CI block of given root
+        ci_block = content.split(ci_block_start)[1].split(ci_block_end)[0]
+
+        root_dicts = []
+        for root_ci_block in ci_block.split('ROOT'):
+
+            # remove header and split into list of CIs
+            ci_list = root_ci_block.split('\n\n')[1].split('\n')
+
+            ci_dict = {}
+            for ci in ci_list:
+                ci = ci.split()
+                ci_dict[ci[0]]=float(ci[1])
+
+            ci_key0 = list(ci_dict.keys())[0].strip('[]') # first electron configuration to determin nelc and norbs
+
+            root_dict = {}
+            root_dict['nelc'] = 2 * ci_key0.count("2") + ci_key0.count("u") + ci_key0.count("d")
+            root_dict['norb'] = len(ci_key0)
+            root_dict['spin_ci'] = ci_dict
+            root_dict['Energy'] = float(root_ci_block.split('E=')[1].split('Eh')[0])*27.211
+
+            root_dicts.append(root_dict)
+
+        return root_dicts
+    
 
 # -------------------------------------------------
 

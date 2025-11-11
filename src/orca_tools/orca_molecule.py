@@ -82,6 +82,9 @@ class Molecule:
         self.dtdip = None
         '''Transition Dipole Derivative from ESD calculation.'''
 
+        self.spinCIs = None
+        '''Spin Configuration Interactions from CASCI calculations.'''
+
         self.freqs = None
         '''Energies of vibrational normal modes (eV)'''
         self.normal_modes = None
@@ -625,6 +628,9 @@ class Molecule:
         return cubename
         
     def __str__(self):
+        return self.filename
+
+    def __repr__(self):
         return self.filename
     
     def __dir__(self):

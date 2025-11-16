@@ -40,7 +40,8 @@ def save_cubin(filename: str | os.PathLike, cubes: list[Cube], x: list | np.ndar
         for i in range(3):
             header += '{:>12}'.format(f'{atom["coords"][i]/bohr2ang:.6f}')
         header += f'\n'
-    header += f'{int(1):>5}{int(cube.vecMO[0]):>5}\n'
+    if cube.isMO:
+        header += f'{int(1):>5}{int(cube.vecMO[0]):>5}\n'
 
     # write header
     with open(filename, "wb") as b:

@@ -3,13 +3,18 @@ import math
 from .orca_molecule import Molecule
 from .orca_utils import bohr2ang, atomic_mass, hartree, hbar, q_e
 
-def huang_rhys(initial_state: Molecule, final_state: Molecule) -> np.ndarray:
+def huang_rhys(initial_state: Molecule, final_state: Molecule,
+               freqs: np.ndarray = None ,mwnm: np.ndarray = None) -> np.ndarray:
     '''Calculate Huang-Rhys factors between initial state and final state molecule.
 
     :param initial_state: Initial structure of molecule.
     :type initial_state: Molecule
     :param final_state: Final structure of molecule.
-    :type fina_statel: Molecule
+    :type final_state: Molecule
+    :param freqs: Frequencies to be used for projection. If None, the frequencies of the final state will be used. Defaults to None.
+    :type freqs: np.ndarray, optional
+    :param mwnm: Mass-weighted normal modes to be used for projection. If None, the normal modes of the final state will be used. Defaults to None.
+    :type mwnm: np.ndarray, optional
     :return: Array of Huang-Rhys factors.
     :rtype: np.ndarray
     
@@ -22,7 +27,10 @@ def huang_rhys(initial_state: Molecule, final_state: Molecule) -> np.ndarray:
 
     # fac = (1E-10 m/Angstrom)^2 * 1.66E-27 kg/u / hbar(in eV) / hbar(in SI)
     fac = 1e-20*atomic_mass*q_e/hbar**2/2
-    if type(final_state.mwnm) != type(None): 
+    if type(mwnm) != type(None) and type(freqs) != type(None):
+        proj = np.sum(mwdiff[None,:,:]*mwnm,axis=(1,2))
+        S = fac*freqs*proj**2
+    elif type(final_state.mwnm) != type(None): 
         proj = np.sum(mwdiff[None,:,:]*final_state.mwnm,axis=(1,2))
         S = fac*final_state.freqs*proj**2
     elif type(initial_state.mwnm) != type(None):
@@ -33,13 +41,19 @@ def huang_rhys(initial_state: Molecule, final_state: Molecule) -> np.ndarray:
 
     return S
     
-def parab_shift(initial_state: Molecule, final_state: Molecule, renorm_to_hwhm: bool=False) -> np.ndarray:
+def parab_shift(initial_state: Molecule, final_state: Molecule,
+                freqs: np.ndarray = None ,mwnm: np.ndarray = None,
+                renorm_to_hwhm: bool=False) -> np.ndarray:
     '''Calculate shift of relaxed structures between initial and final state in mass-weighted normal coordinates.
 
     :param initial_state: Initial structure of molecule.
     :type initial_state: Molecule
     :param final_state: Final structure of molecule.
-    :type fina_statel: Molecule
+    :type final_state: Molecule
+    :param freqs: Frequencies to be used for projection. If None, the frequencies of the final state will be used. Defaults to None.
+    :type freqs: np.ndarray, optional
+    :param mwnm: Mass-weighted normal modes to be used for projection. If None, the normal modes of the final state will be used. Defaults to None.
+    :type mwnm: np.ndarray, optional
     :param renorm_to_hwhm: Shift will be renormalized to HWHM of vibrational ground state gaussian distribution, with a renormalized value of 2 corresponding to the classical turning point. Defaults to False.
     :type renorm_to_hwhm: bool, optional
     :return: 1d array containing shift for each normal mode in units of sqrt(atomic_mass)*Angstrom, if `renorm_to_hwhm = False`.
@@ -50,7 +64,9 @@ def parab_shift(initial_state: Molecule, final_state: Molecule, renorm_to_hwhm: 
     '''    
 
     mwdiff = (final_state.coords_masscentered-initial_state.coords_masscentered)*np.sqrt(final_state.mass[:,None])
-    if type(final_state.mwnm) != type(None): 
+    if type(mwnm) != type(None) and type(freqs) != type(None):
+        proj = np.sum(mwdiff[None,:,:]*mwnm,axis=(1,2))
+    elif type(final_state.mwnm) != type(None): 
         proj = np.sum(mwdiff[None,:,:]*final_state.mwnm,axis=(1,2))
         freqs = final_state.freqs
     elif type(initial_state.mwnm) != type(None):

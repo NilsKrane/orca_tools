@@ -354,6 +354,25 @@ def is_orca_output(filename: str | os.PathLike) -> bool:
 
 # -----------------------------------------------------------------------------------------
 
+def is_gaussian_output(filename: str | os.PathLike) -> bool:
+    '''Check if given file is created by Gaussian calculation.
+
+    :param filename: Path to file
+    :type filename: str | os.PathLike
+    :return: True if created by Gaussian.
+    :rtype: bool
+    '''    
+    header = ' Entering Gaussian System, Link 0='
+    try:
+        with open(filename,'r') as f:
+            content = f.read(len(header))
+    except:
+        return False
+    else:
+        return content == header
+
+# -----------------------------------------------------------------------------------------
+
 def file_list_from_directory(path: str | os.PathLike) -> list[os.PathLike]:
     '''Search for ORCA output, *.gbw and *.hess files in given directory.
 

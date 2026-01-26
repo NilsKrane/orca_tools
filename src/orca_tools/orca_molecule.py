@@ -1,7 +1,8 @@
 import numpy as np
 import os
 from .orca_parser import HessMolecule, OutMolecule, JSONMolecule
-from .orca_utils import dict2json, gbw2json, json2gbw, gbw2cube, write_orcaplot_inputfile, cube_dims, element_to_number, is_orca_output, file_list_from_directory
+from .gaussian_parser import GaussianOutMolecule
+from .orca_utils import dict2json, gbw2json, json2gbw, gbw2cube, write_orcaplot_inputfile, cube_dims, element_to_number, is_orca_output, is_gaussian_output, file_list_from_directory
 from .orca_utils import q_e, hbar, atomic_mass # some constants
 
 try:
@@ -158,7 +159,9 @@ class Molecule:
                 
         elif is_orca_output(filename):
             self.__add_attributes(OutMolecule(filename))
-        
+
+        elif is_gaussian_output(filename):
+            self.__add_attributes(GaussianOutMolecule(filename))        
 
     def __add_attributes(self,parsed_mol: OutMolecule | HessMolecule | JSONMolecule):
         '''Add attributes from `parsed_mol` to this instance of `Molecule`.

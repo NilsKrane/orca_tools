@@ -13,11 +13,11 @@ except ModuleNotFoundError:
 class Molecule:
     '''Class to parse and analyze DFT calculations from ORCA.'''
     
-    def __init__(self, filenames: str | os.PathLike | list[str], orca_path="", parse_gbw=False):
+    def __init__(self, filenames: str | os.PathLike | list[str] = None, orca_path="", parse_gbw=False):
         '''Initialize instance of `Molecule` class.
 
         :param filenames: Path or list of paths to files to be loaded. If path points to directory, files will be detected automatically.
-        :type filenames: str | os.PathLike | list[str]
+        :type filenames: str | os.PathLike | list[str], optional
         :param orca_path: Path to directory containing ORCA binaries, defaults to "". Only required if ORCA is not added to PATH
         :type orca_path: str, optional
         :param parse_gbw: Unpack gbw/nto binary and load parse input. Requires installation of ORCA, defaults to False
@@ -32,7 +32,11 @@ class Molecule:
 
         except AttributeError:
             
-            if os.path.isfile(filenames): # single file was given
+            if type(filenames) == type(None): # input is default
+                filename = None
+                filenames = []
+
+            elif os.path.isfile(filenames): # single file was given
                 filename = filenames
                 filenames = []
 
@@ -43,10 +47,8 @@ class Molecule:
                 else:
                     filename = None
             
-            else: # input is not useful
-                filename = None
-                filenames = []
-
+            else:
+                raise ValueError("Invalid input for 'filenames' argument.")
 
         self.filename = filename
         '''First filename with which Molecule instance was initiated.'''
@@ -161,7 +163,10 @@ class Molecule:
             self.__add_attributes(OutMolecule(filename))
 
         elif is_gaussian_output(filename):
-            self.__add_attributes(GaussianOutMolecule(filename))        
+            self.__add_attributes(GaussianOutMolecule(filename))
+
+        else:
+            print(f"File format not recognized: {filename}")    
 
     def __add_attributes(self,parsed_mol: OutMolecule | HessMolecule | JSONMolecule):
         '''Add attributes from `parsed_mol` to this instance of `Molecule`.

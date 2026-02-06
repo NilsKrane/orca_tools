@@ -322,6 +322,18 @@ class Molecule:
             return None
     
     @property
+    def mwnm_long(self) -> np.ndarray:
+        """Mass weighted vibrational normal modes as 1d vector.
+
+        :return: 2d array of dimensions (number_of_normal_modes, 3*number_of_atoms)
+        :rtype: np.ndarray
+        """        
+        try:
+            return np.reshape(self.mwnm,(self.mwnm.shape[0],-1))
+        except:
+            return None
+
+    @property
     def num_electrons(self) -> int:
         '''Number of electrons in molecule.'''
         if type(self.occupation) != type(None):

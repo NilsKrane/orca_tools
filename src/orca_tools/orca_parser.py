@@ -756,6 +756,9 @@ class OutMolecule:
         ci_block_start = '''----------------------------------------\n  Spin-Determinant CI Printing   \n----------------------------------------  \nROOT'''
         ci_block_end = f'\n\n\n'
 
+        if ci_block_start not in content:
+            return None
+
         # CI block of given root
         ci_block = content.split(ci_block_start)[1].split(ci_block_end)[0]
 

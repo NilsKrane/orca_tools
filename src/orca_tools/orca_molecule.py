@@ -159,15 +159,15 @@ class Molecule:
             self.gbw = filename
             if parse_gbw:
                 self.load_gbw()
-                
+
+        elif filename.endswith('.xyz'):
+            self.__add_attributes(xyzMolecule(filename))
+                            
         elif is_orca_output(filename):
             self.__add_attributes(OutMolecule(filename))
 
         elif is_gaussian_output(filename):
             self.__add_attributes(GaussianOutMolecule(filename))
-
-        elif filename.endswith('.xyz'):
-            self.__add_attributes(xyzMolecule(filename))
 
         else:
             print(f"File format not recognized: {filename}")    

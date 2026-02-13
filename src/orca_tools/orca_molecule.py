@@ -2,6 +2,7 @@ import numpy as np
 import os
 from .orca_parser import HessMolecule, OutMolecule, JSONMolecule
 from .gaussian_parser import GaussianOutMolecule
+from .xyz_parser import xyzMolecule
 from .orca_utils import dict2json, gbw2json, json2gbw, gbw2cube, write_orcaplot_inputfile, cube_dims, element_to_number, is_orca_output, is_gaussian_output, file_list_from_directory
 from .orca_utils import q_e, hbar, atomic_mass # some constants
 
@@ -164,6 +165,9 @@ class Molecule:
 
         elif is_gaussian_output(filename):
             self.__add_attributes(GaussianOutMolecule(filename))
+
+        elif filename.endswith('.xyz'):
+            self.__add_attributes(xyzMolecule(filename))
 
         else:
             print(f"File format not recognized: {filename}")    
